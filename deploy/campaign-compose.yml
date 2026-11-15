@@ -1,0 +1,44 @@
+# Per-campaign composition run on the remote server by DeployCampaign.
+#
+# Brings up the noVNC + Chrome session (with the Site Tweaker extension) and
+# navigates Chrome straight to the campaign's target URL, so the deployed,
+# "modified site" is viewable at  http://<server-ip>:<NOVNC_PORT>/vnc_lite.html
+#
+# Invoked as (from the repo root):
+#   START_URL=<target> NOVNC_PORT=6080 \
+#     docker compose -f deploy/campaign-compose.yml -p phishguard_c<id> up -d --build
+#
+# Build context is the repo root (one level up from this file) so it reuses the
+# exact same novnc/Dockerfile the local stack builds.
+services:
+  novnc:
+    build:
+      context: ..
+      dockerfile: novnc/Dockerfile
+    environment:
+      # Chrome opens this on launch (see novnc/start.sh).
+      START_URL: ${START_URL:-about:blank}
+    ports:
+      - "${NOVNC_PORT:-6080}:6080"   # noVNC web UI
+    volumes:
+      - ../site-tweaker/site-tweaker:/extensions/site-tweaker:ro
+    shm_size: 2gb
+    restart: unless-stopped
+
+  # The agent connects OUT to the central RabbitMQ (PHISHGUARD_AMQP_URL) and
+  # reports campaign telemetry back to the control plane (STRATEGY.md section 5).
+  # It observes the browser over CDP (coarse metadata only — no secrets).
+  agent:
+    build:
+      context: ../agent
+      dockerfile: deployment/Dockerfile.runtime
+    environment:
+      PHISHGUARD_AMQP_URL: ${PHISHGUARD_AMQP_URL:-amqp://guest:guest@rabbitmq:5672/}
+      PHISHGUARD_AGENT_ID: ${PHISHGUARD_AGENT_ID:?set PHISHGUARD_AGENT_ID}
+      PHISHGUARD_CAMPAIGN_ID: ${PHISHGUARD_CAMPAIGN_ID:?set PHISHGUARD_CAMPAIGN_ID}
+      PHISHGUARD_BROWSER_CDP_URL: http://novnc:9222
+      PHISHGUARD_HEARTBEAT_INTERVAL_SECONDS: "30"
+      PHISHGUARD_LOG_JSON: "true"
+    depends_on:
+      - novnc
+    restart: unless-stopped

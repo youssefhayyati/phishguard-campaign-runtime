@@ -1,0 +1,5 @@
+# Nothing here is build output — this repo is only compose + Dockerfile + extension.
+# Guard against accidental local cruft.
+*.log
+.env
+.DS_Store

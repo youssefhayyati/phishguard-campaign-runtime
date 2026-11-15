@@ -1,0 +1,4 @@
+# Force LF on everything so shell scripts run on the Linux campaign server.
+* text=auto eol=lf
+*.sh text eol=lf
+Dockerfile* text eol=lf
