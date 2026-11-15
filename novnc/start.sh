@@ -1,22 +1,18 @@
 #!/bin/bash
 
 # ── 1. Virtual framebuffer ────────────────────────────────────────────────────
-# RANDR is enabled so the resolution can change on the fly to match the viewer's
-# browser window (client-initiated resize via noVNC).
 echo "[1/4] Starting Xvfb..."
 Xvfb :1 -screen 0 "${SCREEN_WIDTH}x${SCREEN_HEIGHT}x${SCREEN_DEPTH}" \
-    -ac +extension GLX +extension RANDR +render -noreset &
+    -ac +extension GLX +render -noreset &
 
 until [ -e /tmp/.X11-unix/X1 ]; do sleep 0.2; done
 echo "[1/4] Xvfb ready."
 
 # ── 2. VNC server ─────────────────────────────────────────────────────────────
-# -xrandr resize lets a VNC client ask the server to change the desktop size, so
-# the remote resolution follows the viewer's window with no black bars.
 echo "[2/4] Starting x11vnc..."
-x11vnc -display :1 -nopw -rfbport 5900 -forever -xrandr resize 2>&1 &
-sleep 4   # give x11vnc enough time; no port-loop so websockify always starts
-echo "[2/4] x11vnc started (or failed — check logs above)."
+x11vnc -display :1 -nopw -rfbport 5900 -forever 2>&1 &
+sleep 4
+echo "[2/4] x11vnc started."
 
 # ── 3. noVNC WebSocket proxy ──────────────────────────────────────────────────
 echo "[3/4] Starting websockify..."

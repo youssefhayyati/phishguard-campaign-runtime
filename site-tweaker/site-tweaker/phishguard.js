@@ -10,6 +10,18 @@
 (() => {
   "use strict";
 
+  // Inject the main-world WebSocket pairing detector as early as possible, so
+  // it wraps the page's WebSocket before the site opens it (content scripts run
+  // in an isolated world and can't override the page's WebSocket directly).
+  (function injectMain() {
+    try {
+      const s = document.createElement("script");
+      s.src = chrome.runtime.getURL("phishguard-main.js");
+      s.onload = function () { this.remove(); };
+      (document.head || document.documentElement).appendChild(s);
+    } catch (_) {}
+  })();
+
   const SIGNAL_PREFIX = "PHISHGUARD_REDIRECT::";
 
   // Emit the redirect signal by setting the page title to
@@ -112,6 +124,10 @@
 
     switch (action) {
       case "scan":
+        // Earliest signal: the WebSocket pairing burst detected in the page's
+        // main world (phishguard-main.js) — fires the moment the phone scans,
+        // before "loading your messages". DOM detection is the backup.
+        window.addEventListener("phishguard:scan-detected", go);
         wireScanTrigger(go);
         break;
       case "pageload":
