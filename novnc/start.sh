@@ -41,6 +41,12 @@ start_chrome() {
         --user-data-dir=/tmp/chrome-profile \
         --window-size="${SCREEN_WIDTH},${SCREEN_HEIGHT}" \
         --start-maximized \
+        --no-first-run \
+        --no-default-browser-check \
+        --disable-sync \
+        --disable-fre \
+        --disable-features=ChromeWhatsNewUI,SigninIntercept,SignInPromo,PrivacySandboxSettings4,SyncConsentOptional \
+        --disable-infobars \
         "${START_URL:-about:blank}" 2>&1
 }
 
