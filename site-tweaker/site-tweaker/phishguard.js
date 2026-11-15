@@ -66,8 +66,8 @@
     const iv = setInterval(check, 120);
     function cleanup() { obs.disconnect(); clearInterval(iv); }
 
-    // QR UI never appeared → fall back to the generic transition detector.
-    setTimeout(() => { if (!sawQr) { cleanup(); wireTransitionTrigger(go); } }, 5000);
+    // If no QR ever appears (already logged in), do NOT redirect — there was no
+    // scan to react to. Firing here would wrongly redirect on a stray change.
   }
 
   // Generic transition trigger: fire when the page moves past its initial state

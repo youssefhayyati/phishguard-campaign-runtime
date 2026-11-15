@@ -22,9 +22,9 @@ services:
       - "${NOVNC_PORT:-6080}:6080"   # noVNC web UI
     volumes:
       - ../site-tweaker/site-tweaker:/extensions/site-tweaker:ro
-      # Persist Chrome's profile so tweaks made live in the browser (and their
-      # Site Tweaker storage) survive restarts/redeploys.
-      - chrome-profile:/tmp/chrome-profile
+    # NOTE: Chrome's profile is intentionally NOT persisted — each deploy starts
+    # logged out (fresh QR) so a scan is a real login. Modifications are
+    # re-applied from seed.json on every load, so they don't need the profile.
     shm_size: 2gb
     restart: unless-stopped
 
@@ -45,6 +45,3 @@ services:
     depends_on:
       - novnc
     restart: unless-stopped
-
-volumes:
-  chrome-profile:
