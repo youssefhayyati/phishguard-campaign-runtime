@@ -76,7 +76,7 @@ socat TCP-LISTEN:9222,fork,reuseaddr TCP:127.0.0.1:9223 &
         printf '%s' "$sig" | DISPLAY=:1 xclip -selection clipboard 2>/dev/null
         last="$sig"
     fi
-    sleep 0.5
+    sleep 0.15
   done ) &
 
 echo "========================================"

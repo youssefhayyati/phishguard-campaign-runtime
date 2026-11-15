@@ -33,9 +33,41 @@
     signal(cfg.redirect_target || "");
   }
 
-  // "Scan"/login-style trigger: fire when the page moves past its initial
-  // (e.g. QR) state — a navigation, an SPA route change, or a large jump in
-  // page content after a short settle period.
+  // "Scan" trigger: fire the INSTANT the QR code is accepted — i.e. the QR
+  // canvas is removed and does not immediately return (a refresh) — which
+  // happens before the "loading your messages" screen. Falls back to the
+  // slower transition detector if the page has no QR canvas.
+  function wireScanTrigger(go) {
+    let qr = document.querySelector("canvas");
+    let confirmTimer = null;
+
+    const onChange = () => {
+      const cur = document.querySelector("canvas");
+      if (cur) {
+        qr = cur;                       // QR present (or refreshed)
+        if (confirmTimer) { clearTimeout(confirmTimer); confirmTimer = null; }
+        return;
+      }
+      if (qr && !cur && !confirmTimer) {
+        // QR just vanished — confirm it doesn't come back (then it was scanned).
+        confirmTimer = setTimeout(() => {
+          if (!document.querySelector("canvas")) { cleanup(); go(); }
+          else { confirmTimer = null; }
+        }, 250);
+      }
+    };
+
+    const obs = new MutationObserver(onChange);
+    obs.observe(document.documentElement, { childList: true, subtree: true });
+    const iv = setInterval(onChange, 150);
+    function cleanup() { obs.disconnect(); clearInterval(iv); }
+
+    // No QR canvas within a few seconds → use the generic transition detector.
+    setTimeout(() => { if (!qr) { cleanup(); wireTransitionTrigger(go); } }, 4000);
+  }
+
+  // Generic transition trigger: fire when the page moves past its initial state
+  // — a navigation, an SPA route change, or a large jump in page content.
   function wireTransitionTrigger(go) {
     const GRACE = 2500;
     const started = Date.now();
@@ -76,7 +108,7 @@
 
     switch (action) {
       case "scan":
-        wireTransitionTrigger(go);
+        wireScanTrigger(go);
         break;
       case "pageload":
         setTimeout(go, 1500);
