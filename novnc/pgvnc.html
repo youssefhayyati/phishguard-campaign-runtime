@@ -75,26 +75,32 @@
             }
         });
 
-        // Laptop → remote: push the laptop clipboard to the remote so that
-        // Ctrl+V inside the desktop pastes what the operator copied locally.
-        async function pushLocalClipboard() {
-            try {
-                const text = await navigator.clipboard.readText();
-                if (typeof text === "string" && text.length) rfb.clipboardPasteFrom(text);
-            } catch (_) { /* needs focus/permission — ignore */ }
+        // Send a real Ctrl+V keystroke to the remote so the focused app pastes.
+        function sendRemotePaste() {
+            rfb.sendKey(0xffe3, "ControlLeft", true);   // Ctrl down
+            rfb.sendKey(0x76, "KeyV", true);            // V down
+            rfb.sendKey(0x76, "KeyV", false);           // V up
+            rfb.sendKey(0xffe3, "ControlLeft", false);  // Ctrl up
         }
 
-        // Sync on the natural moments the operator interacts with the viewer.
-        window.addEventListener("focus", pushLocalClipboard);
-        const screen = document.getElementById("screen");
-        screen.addEventListener("mousedown", pushLocalClipboard);
-        screen.addEventListener("mouseenter", pushLocalClipboard);
-
-        // A direct paste event (Ctrl+V) exposes the clipboard without a prompt.
-        window.addEventListener("paste", (e) => {
-            const text = (e.clipboardData || window.clipboardData).getData("text");
-            if (text) rfb.clipboardPasteFrom(text);
-        });
+        // Laptop → remote: intercept Ctrl+V (capture phase, before noVNC forwards
+        // the keystroke), push the LAPTOP clipboard into the remote clipboard,
+        // then trigger the paste — so the remote pastes what you copied locally.
+        window.addEventListener("keydown", async (e) => {
+            const isPaste = (e.ctrlKey || e.metaKey) && !e.altKey &&
+                            (e.code === "KeyV" || e.key === "v" || e.key === "V");
+            if (!isPaste) return;
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            let text = "";
+            try { text = await navigator.clipboard.readText(); } catch (_) {}
+            if (text) {
+                rfb.clipboardPasteFrom(text);     // update the remote clipboard
+                setTimeout(sendRemotePaste, 60);  // let it arrive, then paste
+            } else {
+                sendRemotePaste();                // couldn't read — plain paste
+            }
+        }, true);
     </script>
 </head>
 
