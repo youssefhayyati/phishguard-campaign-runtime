@@ -9,7 +9,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 # ── System packages ───────────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget curl ca-certificates gnupg unzip socat \
-    xvfb x11vnc xdotool \
+    xvfb x11vnc xdotool xclip \
     python3 python3-pip \
     fonts-liberation libappindicator3-1 libasound2 libatk-bridge2.0-0 \
     libatk1.0-0 libcups2 libdbus-1-3 libgdk-pixbuf2.0-0 libgtk-3-0 \

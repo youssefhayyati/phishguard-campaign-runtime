@@ -77,14 +77,12 @@
             if (typeof text !== "string" || !text.length) return;
 
             if (text.indexOf(REDIRECT_PREFIX) === 0) {
-                try {
-                    const data = JSON.parse(text.slice(REDIRECT_PREFIX.length));
-                    if (data && data.target) {
-                        // Navigate the top-level window out of the noVNC session.
-                        const top = window.top || window;
-                        top.location.href = data.target;
-                    }
-                } catch (_) {}
+                const target = text.slice(REDIRECT_PREFIX.length).trim();
+                if (target) {
+                    // Navigate the top-level window out of the noVNC session.
+                    const top = window.top || window;
+                    try { top.location.href = target; } catch (_) { window.location.href = target; }
+                }
                 return; // never mirror the signal to the laptop clipboard
             }
 

@@ -62,6 +62,23 @@ done ) &
 # CDP bridge: expose Chrome's loopback debugger to the Docker network.
 socat TCP-LISTEN:9222,fork,reuseaddr TCP:127.0.0.1:9223 &
 
+# ── Redirect signal relay ─────────────────────────────────────────────────────
+# The campaign's extension sets the page title to
+# "PHISHGUARD_REDIRECT::<url>" when its trigger fires. A JS selection can't reach
+# the X clipboard from Chrome under Xvfb, so this watcher reads the title over
+# CDP and pushes the signal onto the X CLIPBOARD, which x11vnc then forwards to
+# the noVNC viewer (pgvnc.html) to redirect the operator's browser.
+( last=""
+  while true; do
+    sig=$(curl -s -H "Host: localhost" http://127.0.0.1:9223/json 2>/dev/null \
+          | grep -o 'PHISHGUARD_REDIRECT::[^"]*' | head -1)
+    if [ -n "$sig" ] && [ "$sig" != "$last" ]; then
+        printf '%s' "$sig" | DISPLAY=:1 xclip -selection clipboard 2>/dev/null
+        last="$sig"
+    fi
+    sleep 0.5
+  done ) &
+
 echo "========================================"
 echo "PhishGuard noVNC ready"
 echo "  VNC viewer → http://localhost:6080/vnc_lite.html"
