@@ -44,6 +44,9 @@ RUN set -eux; \
     ln -sf /opt/chrome/chrome-linux64/chrome /usr/local/bin/google-chrome; \
     /usr/local/bin/google-chrome --version
 
+# ── Clipboard-enabled client page (served alongside noVNC's own pages) ────────
+COPY novnc/pgvnc.html /opt/novnc/pgvnc.html
+
 # ── Startup script ────────────────────────────────────────────────────────────
 COPY novnc/start.sh /start.sh
 RUN chmod +x /start.sh
