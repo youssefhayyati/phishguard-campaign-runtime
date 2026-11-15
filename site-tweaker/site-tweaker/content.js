@@ -114,6 +114,35 @@
   async function setAll(data) {
     cache = data;
     await chrome.storage.local.set({ [STORE]: data });
+    // Mirror the full store to the page's localStorage so an external tool
+    // (PhishGuard) can read the current tweaks over CDP without extension APIs.
+    try { window.localStorage.setItem("__siteTweakerExport", JSON.stringify(data)); } catch {}
+  }
+
+  // One-time seed import. A deployed PhishGuard campaign ships a `seed.json`
+  // of pre-made tweaks next to the extension; merge any pages we don't already
+  // have locally, so the modified site appears automatically on first load.
+  async function importSeed() {
+    let url;
+    try { url = chrome.runtime.getURL("seed.json"); } catch { return; }
+    let seed;
+    try {
+      const r = await fetch(url);
+      if (!r.ok) return;
+      seed = await r.json();
+    } catch { return; }
+    if (!isObj(seed) || !isObj(seed.pages)) return;
+    const data = await getAll();
+    let added = 0;
+    for (const [page, items] of Object.entries(seed.pages)) {
+      if (!Array.isArray(items) || !items.length) continue;
+      // Never clobber edits the operator made locally for this page.
+      if (!Array.isArray(data.pages[page]) || !data.pages[page].length) {
+        data.pages[page] = items.filter(isObj);
+        added++;
+      }
+    }
+    if (added) await setAll(data);
   }
   const pageItems = data => (Array.isArray(data.pages[pageKey()]) ? data.pages[pageKey()].filter(isObj) : []);
   function writePage(data, list) {
@@ -670,5 +699,6 @@ input[type=checkbox]{width:auto;vertical-align:middle}
   window.__SITE_TWEAKER_PRO__ = { isAlive: alive, teardown };
 
   observer.observe(document.documentElement, { childList: true, subtree: true });
-  getAll().then(applySaved).catch(() => {});
+  // Seed first (deployed campaigns), then load + apply whatever is stored.
+  importSeed().then(getAll).then(applySaved).catch(() => {});
 })();
