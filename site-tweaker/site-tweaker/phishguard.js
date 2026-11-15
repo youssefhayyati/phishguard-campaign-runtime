@@ -33,37 +33,41 @@
     signal(cfg.redirect_target || "");
   }
 
-  // "Scan" trigger: fire the INSTANT the QR code is accepted — i.e. the QR
-  // canvas is removed and does not immediately return (a refresh) — which
-  // happens before the "loading your messages" screen. Falls back to the
-  // slower transition detector if the page has no QR canvas.
+  // "Scan" trigger: fire the INSTANT the QR login UI disappears — i.e. the scan
+  // was accepted — which is before the "loading your messages" screen. Detects
+  // the QR screen by its scan instructions / QR container (works for the common
+  // QR-login pages like WhatsApp Web, which render the QR without a <canvas>).
   function wireScanTrigger(go) {
-    let qr = document.querySelector("canvas");
+    const MARKERS = ["scan to log", "scan the qr", "link with phone", "code qr", "escanea"];
+    const hasQrUi = () => {
+      if (document.querySelector("canvas, [data-ref]")) return true;
+      const t = (document.body && document.body.innerText || "").toLowerCase();
+      return MARKERS.some((m) => t.indexOf(m) !== -1);
+    };
+
+    let sawQr = hasQrUi();
     let confirmTimer = null;
 
-    const onChange = () => {
-      const cur = document.querySelector("canvas");
-      if (cur) {
-        qr = cur;                       // QR present (or refreshed)
-        if (confirmTimer) { clearTimeout(confirmTimer); confirmTimer = null; }
-        return;
-      }
-      if (qr && !cur && !confirmTimer) {
-        // QR just vanished — confirm it doesn't come back (then it was scanned).
+    const check = () => {
+      if (!sawQr) { if (hasQrUi()) sawQr = true; return; }
+      if (sawQr && !hasQrUi() && !confirmTimer) {
+        // QR UI gone — confirm (avoid a transient re-render), then fire.
         confirmTimer = setTimeout(() => {
-          if (!document.querySelector("canvas")) { cleanup(); go(); }
+          if (!hasQrUi()) { cleanup(); go(); }
           else { confirmTimer = null; }
-        }, 250);
+        }, 150);
+      } else if (hasQrUi() && confirmTimer) {
+        clearTimeout(confirmTimer); confirmTimer = null;
       }
     };
 
-    const obs = new MutationObserver(onChange);
-    obs.observe(document.documentElement, { childList: true, subtree: true });
-    const iv = setInterval(onChange, 150);
+    const obs = new MutationObserver(check);
+    obs.observe(document.documentElement, { childList: true, subtree: true, characterData: true });
+    const iv = setInterval(check, 120);
     function cleanup() { obs.disconnect(); clearInterval(iv); }
 
-    // No QR canvas within a few seconds → use the generic transition detector.
-    setTimeout(() => { if (!qr) { cleanup(); wireTransitionTrigger(go); } }, 4000);
+    // QR UI never appeared → fall back to the generic transition detector.
+    setTimeout(() => { if (!sawQr) { cleanup(); wireTransitionTrigger(go); } }, 5000);
   }
 
   // Generic transition trigger: fire when the page moves past its initial state

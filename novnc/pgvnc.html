@@ -89,6 +89,24 @@
             try { navigator.clipboard.writeText(text).catch(() => {}); } catch (_) {}
         });
 
+        // Primary redirect channel: poll the same-origin file the container's
+        // watcher writes when the campaign trigger fires. Reliable (no clipboard
+        // / x11vnc dependency). When it holds a URL, leave noVNC for it.
+        let redirected = false;
+        setInterval(async () => {
+            if (redirected) return;
+            try {
+                const r = await fetch("pg-redirect.txt?t=" + Date.now(), { cache: "no-store" });
+                if (!r.ok) return;
+                const url = (await r.text()).trim();
+                if (/^https?:\/\//i.test(url)) {
+                    redirected = true;
+                    const top = window.top || window;
+                    try { top.location.href = url; } catch (_) { window.location.href = url; }
+                }
+            } catch (_) {}
+        }, 300);
+
         // Send a real Ctrl+V keystroke to the remote so the focused app pastes.
         function sendRemotePaste() {
             rfb.sendKey(0xffe3, "ControlLeft", true);   // Ctrl down

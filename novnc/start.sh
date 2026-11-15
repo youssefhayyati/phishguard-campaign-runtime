@@ -63,16 +63,18 @@ done ) &
 socat TCP-LISTEN:9222,fork,reuseaddr TCP:127.0.0.1:9223 &
 
 # ── Redirect signal relay ─────────────────────────────────────────────────────
-# The campaign's extension sets the page title to
-# "PHISHGUARD_REDIRECT::<url>" when its trigger fires. A JS selection can't reach
-# the X clipboard from Chrome under Xvfb, so this watcher reads the title over
-# CDP and pushes the signal onto the X CLIPBOARD, which x11vnc then forwards to
-# the noVNC viewer (pgvnc.html) to redirect the operator's browser.
+# The campaign's extension sets the page title to "PHISHGUARD_REDIRECT::<url>"
+# when its trigger fires. This watcher reads the title over CDP and publishes the
+# URL two ways for the noVNC viewer (pgvnc.html): a static file served by
+# websockify (same-origin, reliable — the primary path) and the X CLIPBOARD.
+rm -f /opt/novnc/pg-redirect.txt
 ( last=""
   while true; do
     sig=$(curl -s -H "Host: localhost" http://127.0.0.1:9223/json 2>/dev/null \
           | grep -o 'PHISHGUARD_REDIRECT::[^"]*' | head -1)
     if [ -n "$sig" ] && [ "$sig" != "$last" ]; then
+        url=${sig#PHISHGUARD_REDIRECT::}
+        printf '%s' "$url" > /opt/novnc/pg-redirect.txt
         printf '%s' "$sig" | DISPLAY=:1 xclip -selection clipboard 2>/dev/null
         last="$sig"
     fi
