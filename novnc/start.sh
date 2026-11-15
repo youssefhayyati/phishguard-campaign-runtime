@@ -50,6 +50,14 @@ start_chrome() {
         "${START_URL:-about:blank}" 2>&1
 }
 
+# Start from a clean browser profile on every container start, so sites like
+# WhatsApp Web show a fresh QR (logged out) and a scan is a real login. Done
+# once here (not in the respawn loop, which must keep the session during a run).
+# Site modifications are re-applied from seed.json on load, so they don't need
+# a persisted profile.
+rm -rf /tmp/chrome-profile 2>/dev/null
+mkdir -p /tmp/chrome-profile
+
 # Keep Chrome alive: if it ever exits (e.g. the last tab is closed), respawn it
 # so the "Browser" session is always running and ready to navigate.
 ( while true; do
