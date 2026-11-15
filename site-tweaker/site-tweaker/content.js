@@ -704,6 +704,19 @@ input[type=checkbox]{width:auto;vertical-align:middle}
   // Single-page apps change the URL without reloading.
   window.addEventListener("popstate", scheduleApply);
 
+  // PhishGuard control hooks. The control plane dispatches these page-level
+  // events over CDP (main world); we handle them here (isolated world) where
+  // chrome.storage is available.
+  //   __st_clear  → wipe all saved tweaks so the preview starts empty.
+  window.addEventListener("__st_clear", () => {
+    try {
+      chrome.storage.local.clear().then(() => {
+        try { window.localStorage.removeItem("__siteTweakerExport"); } catch {}
+        location.reload();
+      });
+    } catch {}
+  });
+
   window.__SITE_TWEAKER_PRO__ = { isAlive: alive, teardown };
 
   observer.observe(document.documentElement, { childList: true, subtree: true });
