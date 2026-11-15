@@ -18,8 +18,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libgbm1 libdrm2 libxkbcommon0 libatspi2.0-0 libpango-1.0-0 libcairo2 \
     && rm -rf /var/lib/apt/lists/*
 
-# ── websockify via pip (the apt version is unreliable) ────────────────────────
-RUN pip3 install --no-cache-dir websockify
+# ── websockify + websocket-client (CDP monitor) via pip ───────────────────────
+RUN pip3 install --no-cache-dir websockify websocket-client
 
 # ── noVNC from GitHub (known-good release with all web assets) ────────────────
 RUN wget -qO /tmp/novnc.tar.gz \
@@ -46,6 +46,9 @@ RUN set -eux; \
 
 # ── Clipboard-enabled client page (served alongside noVNC's own pages) ────────
 COPY novnc/pgvnc.html /opt/novnc/pgvnc.html
+
+# ── CDP WebSocket pairing monitor (early scan detection) ──────────────────────
+COPY novnc/ws-monitor.py /ws-monitor.py
 
 # ── Startup script ────────────────────────────────────────────────────────────
 COPY novnc/start.sh /start.sh
